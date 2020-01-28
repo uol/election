@@ -1,0 +1,9 @@
+package: github.com/uol/election
+import:
+- package: github.com/samuel/go-zookeeper
+  subpackages:
+  - zk
+- package: github.com/uol/funks
+  version: ~1.0.0
+- package: github.com/uol/logh
+  version: ~1.0.0
