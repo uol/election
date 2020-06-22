@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"os"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/uol/election"
+	"github.com/uol/funks"
 	"github.com/uol/logh"
 )
 
@@ -24,10 +25,10 @@ func main() {
 		ZKURL:                  []string{"zookeeper.intranet"},
 		ZKElectionNodeURI:      "/master",
 		ZKSlaveNodesURI:        "/slaves",
-		ReconnectionTimeout:    "3s",
-		SessionTimeout:         "5s",
-		ClusterChangeCheckTime: "1s",
-		ClusterChangeWaitTime:  "1s",
+		ReconnectionTimeout:    *funks.ForceNewStringDuration("3s"),
+		SessionTimeout:         *funks.ForceNewStringDuration("5s"),
+		ClusterChangeCheckTime: *funks.ForceNewStringDuration("1s"),
+		ClusterChangeWaitTime:  *funks.ForceNewStringDuration("1s"),
 	}
 
 	manager, err := election.New(&cfg)

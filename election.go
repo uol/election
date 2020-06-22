@@ -1,12 +1,11 @@
 package election
 
 import (
-	"fmt"
 	"os"
 	"time"
 
-	"github.com/uol/logh"
 	"github.com/uol/funks"
+	"github.com/uol/logh"
 
 	"sync"
 
@@ -22,59 +21,31 @@ const defaultChannelSize int = 5
 
 // Manager - handles the zookeeper election
 type Manager struct {
-	zkConnection                   *zk.Conn
-	config                         *Config
-	isMaster                       bool
-	defaultACL                     []zk.ACL
-	logger                         *logh.ContextualLogger
-	feedbackChannel                chan int
-	clusterConnectionEventChannel  <-chan zk.Event
-	sessionID                      int64
-	nodeName                       string
-	clusterNodes                   sync.Map
-	terminate                      bool
-	sessionTimeoutDuration         time.Duration
-	reconnectionTimeoutDuration    time.Duration
-	clusterChangeCheckTimeDuration time.Duration
-	clusterChangeWaitTimeDuration  time.Duration
+	zkConnection                  *zk.Conn
+	config                        *Config
+	isMaster                      bool
+	defaultACL                    []zk.ACL
+	logger                        *logh.ContextualLogger
+	feedbackChannel               chan int
+	clusterConnectionEventChannel <-chan zk.Event
+	sessionID                     int64
+	nodeName                      string
+	clusterNodes                  sync.Map
+	terminate                     bool
 }
 
 // New - creates a new instance
 func New(config *Config) (*Manager, error) {
 
-	sessionTimeoutDuration, err := time.ParseDuration(config.SessionTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("invalid session timeout duration: %s", config.SessionTimeout)
-	}
-
-	reconnectionTimeoutDuration, err := time.ParseDuration(config.ReconnectionTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("invalid reconnection timeout duration: %s", config.ReconnectionTimeout)
-	}
-
-	clusterChangeCheckTimeDuration, err := time.ParseDuration(config.ClusterChangeCheckTime)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cluster change check time duration: %s", config.ClusterChangeCheckTime)
-	}
-
-	clusterChangeWaitTimeDuration, err := time.ParseDuration(config.ClusterChangeWaitTime)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cluster change wait time duration: %s", config.ClusterChangeWaitTime)
-	}
-
 	return &Manager{
-		zkConnection:                   nil,
-		config:                         config,
-		defaultACL:                     zk.WorldACL(zk.PermAll),
-		logger:                         logh.CreateContextualLogger("pkg", "election"),
-		feedbackChannel:                make(chan int, defaultChannelSize),
-		clusterConnectionEventChannel:  nil,
-		clusterNodes:                   sync.Map{},
-		terminate:                      false,
-		sessionTimeoutDuration:         sessionTimeoutDuration,
-		reconnectionTimeoutDuration:    reconnectionTimeoutDuration,
-		clusterChangeCheckTimeDuration: clusterChangeCheckTimeDuration,
-		clusterChangeWaitTimeDuration:  clusterChangeWaitTimeDuration,
+		zkConnection:                  nil,
+		config:                        config,
+		defaultACL:                    zk.WorldACL(zk.PermAll),
+		logger:                        logh.CreateContextualLogger("pkg", "election"),
+		feedbackChannel:               make(chan int, defaultChannelSize),
+		clusterConnectionEventChannel: nil,
+		clusterNodes:                  sync.Map{},
+		terminate:                     false,
 	}, nil
 }
 
@@ -129,7 +100,7 @@ func (m *Manager) connect() error {
 	var err error
 
 	// Create the ZK connection
-	m.zkConnection, m.clusterConnectionEventChannel, err = zk.Connect(m.config.ZKURL, m.sessionTimeoutDuration)
+	m.zkConnection, m.clusterConnectionEventChannel, err = zk.Connect(m.config.ZKURL, m.config.SessionTimeout.Duration)
 	if err != nil {
 		return err
 	}
@@ -166,8 +137,8 @@ func (m *Manager) connect() error {
 					m.Disconnect()
 					m.feedbackChannel <- Disconnected
 					for {
-						<-time.After(m.reconnectionTimeoutDuration)
-						m.zkConnection, m.clusterConnectionEventChannel, err = zk.Connect(m.config.ZKURL, m.sessionTimeoutDuration)
+						<-time.After(m.config.ReconnectionTimeout.Duration)
+						m.zkConnection, m.clusterConnectionEventChannel, err = zk.Connect(m.config.ZKURL, m.config.SessionTimeout.Duration)
 						if err != nil {
 							if logh.ErrorEnabled {
 								m.logger.Error().Str("func", "connect").Err(err).Msg("error reconnecting to zookeeper")
@@ -304,7 +275,7 @@ func (m *Manager) listenForNodeEvents() error {
 				return
 			}
 
-			<-time.After(m.clusterChangeCheckTimeDuration)
+			<-time.After(m.config.ClusterChangeCheckTime.Duration)
 
 			cluster, err := m.GetClusterInfo()
 			if err != nil {
@@ -336,7 +307,7 @@ func (m *Manager) listenForNodeEvents() error {
 						m.clusterNodes.Store(node, true)
 					}
 					m.feedbackChannel <- ClusterChanged
-					<-time.After(m.clusterChangeWaitTimeDuration)
+					<-time.After(m.config.ClusterChangeWaitTime.Duration)
 				}
 			}
 		}

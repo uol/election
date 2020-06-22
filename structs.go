@@ -1,6 +1,9 @@
 package election
 
-import "github.com/samuel/go-zookeeper/zk"
+import (
+	"github.com/samuel/go-zookeeper/zk"
+	"github.com/uol/funks"
+)
 
 //
 // All structs and constants used by this library.
@@ -21,13 +24,13 @@ const Disconnected = 4
 
 // Config - configures the election
 type Config struct {
-	ZKURL                  []string
-	ZKElectionNodeURI      string
-	ZKSlaveNodesURI        string
-	ReconnectionTimeout    string
-	SessionTimeout         string
-	ClusterChangeCheckTime string
-	ClusterChangeWaitTime  string
+	ZKURL                  []string       `json:"zkURL"`
+	ZKElectionNodeURI      string         `json:"zkElectionNodeURI"`
+	ZKSlaveNodesURI        string         `json:"zkSlaveNodesURI"`
+	ReconnectionTimeout    funks.Duration `json:"reconnectionTimeout"`
+	SessionTimeout         funks.Duration `json:"sessionTimeout"`
+	ClusterChangeCheckTime funks.Duration `json:"clusterChangeCheckTime"`
+	ClusterChangeWaitTime  funks.Duration `json:"clusterChangeWaitTime"`
 }
 
 // Cluster - has cluster info
